@@ -857,3 +857,85 @@ The following formulation is exploited in InjectiveTypes.CounterExamples.
    WSAC'-implies-WSAC
 
 \end{code}
+
+Added by J. A. Carr on <date>
+
+\begin{code}
+
+module dns-Ω
+        (fe : FunExt)
+        (pt : propositional-truncations-exist)
+        where
+
+ open PropositionalTruncation pt
+ open DNS pt fe
+ open import Fin.Type
+ open import Fin.Kuratowski pt
+ open import UF.ImageAndSurjection pt
+
+ finite-DNS
+   : {𝓤 : Universe}
+   → (n : ℕ) (P : Fin n → 𝓤 ̇)
+   → (Π k ꞉ (Fin n), ¬¬ (P k))
+   → ¬¬ (Π k ꞉ (Fin n), (P k))
+ finite-DNS 0 _ _ result-false = result-false (λ z → 𝟘-elim z)
+ finite-DNS {𝓤} (succ n) P nnP result-false = nnP (inr ⋆) ind-case
+  where
+   P' : Fin n → 𝓤 ̇
+   P' n = P (inl n)
+
+   result-false' : ((k : Fin n) → P' k) → 𝟘
+   result-false' all-true = nnP (inr ⋆) (λ pz → result-false (all-true' pz))
+    where
+     all-true' : P (inr ⋆) → ((k : Fin (succ n)) → P k)
+     all-true' pz (inr ⋆) = pz
+     all-true' _ (inl k) = all-true k
+
+   nnP' : (k : Fin n) → ¬¬ P' k
+   nnP' k = nnP (inl k)
+
+   ind-case : P (inr ⋆) → 𝟘
+   ind-case PZ = 𝟘-elim (finite-DNS n P' nnP' result-false')
+
+ K-finite-data-Ω-gives-DNS
+   : Kuratowski-data (Ω 𝓤)
+   → DNS₋₁ {𝓤} {𝓤}
+ K-finite-data-Ω-gives-DNS {𝓤} ( n , t , total ) X P _ P-is-prop nnp not-all-p = contra
+  where
+   p-tk : Fin n → 𝓤 ̇
+   p-tk k = (x : X) → (P x → (t k) holds) → (t k) holds
+
+   false-gives-true : (k : Fin n) → ¬ ((t k) holds) → p-tk k
+   false-gives-true k ntk x np  =
+    𝟘-elim (nnp x (λ px → ntk (np px)))
+
+   true-gives-true : (k : Fin n) → (t k) holds → p-tk k
+   true-gives-true k tk _ _ = tk
+
+   em-𝟘 : { P Q : 𝓤 ̇ } → (P → Q) → (¬ P → Q) → (Q → 𝟘) → 𝟘
+   em-𝟘 p-true p-false not-q =
+     not-q (p-false (λ p → not-q (p-true p)))
+
+   eq-fw : { P Q : (Ω 𝓤) } → P ＝ Q → P holds → Q holds
+   eq-fw eq = transport (_holds) eq
+
+   eq-bw : { P Q : (Ω 𝓤) } → P ＝ Q → Q holds → P holds
+   eq-bw eq = transport (_holds) (eq ⁻¹)
+
+   all-p-tk-gives-all-p : ((k : Fin n) → p-tk k) → (x : X) → P x
+   all-p-tk-gives-all-p all-tk x =
+    ∥∥-rec
+    (P-is-prop x)
+    (λ (k , tk-eq-P ) → eq-fw tk-eq-P (all-tk k x (eq-bw tk-eq-P)))
+    ( total ( P x , P-is-prop x ) )
+
+   contra : 𝟘
+   contra =
+    finite-DNS
+     n
+     p-tk
+     (λ k p-tk-false →
+       em-𝟘 (true-gives-true k) (false-gives-true k) p-tk-false)
+     (λ all-t → not-all-p (all-p-tk-gives-all-p all-t))
+
+\end{code}
