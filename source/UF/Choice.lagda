@@ -862,7 +862,7 @@ Added by J. A. Carr on <date>
 
 \begin{code}
 
-module dns-Ω
+module finite-Ω-dns
         (fe : FunExt)
         (pt : propositional-truncations-exist)
         where
